@@ -144,44 +144,6 @@
       0%, 100% { opacity: 1; } 50% { opacity: 0.2; }
     }
 
-    /* utm table */
-    .utm-grid {
-      display: grid;
-      gap: 10px;
-    }
-    .utm-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .utm-label {
-      width: 90px;
-      font-size: 13px;
-      color: var(--muted);
-      flex-shrink: 0;
-    }
-    .utm-bar-wrap {
-      flex: 1;
-      height: 6px;
-      background: var(--border);
-      border-radius: 99px;
-      overflow: hidden;
-    }
-    .utm-bar {
-      height: 100%;
-      border-radius: 99px;
-      background: var(--accent2);
-      width: 0;
-      transition: width 1s cubic-bezier(.16,1,.3,1);
-    }
-    .utm-count {
-      font-family: 'Unbounded', sans-serif;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text);
-      width: 24px;
-      text-align: right;
-    }
   </style>
 </head>
 <body>
@@ -205,11 +167,6 @@
         <div class="kpi-value" id="kpi-city" style="font-size:18px">—</div>
         <div class="kpi-sub" id="kpi-city-count"></div>
       </div>
-      <div class="kpi">
-        <div class="kpi-label">Топ источник</div>
-        <div class="kpi-value" id="kpi-utm" style="font-size:18px">—</div>
-        <div class="kpi-sub" id="kpi-utm-count"></div>
-      </div>
     </div>
 
     <div class="card" id="card-chart">
@@ -217,10 +174,6 @@
       <canvas id="cityChart" height="300"></canvas>
     </div>
 
-    <div class="card" id="card-utm">
-      <div class="card-title">Источники трафика</div>
-      <div class="utm-grid" id="utm-grid"></div>
-    </div>
   </div>
 </div>
 
@@ -230,7 +183,7 @@
 
   async function fetchOrders() {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/orders?select=city,utm_source`,
+      `${SUPABASE_URL}/rest/v1/orders?select=city`,
       {
         headers: {
           'apikey': SUPABASE_KEY,
@@ -315,33 +268,10 @@
     });
   }
 
-  function renderUtm(utmMap) {
-    const sorted = Object.entries(utmMap).sort((a, b) => b[1] - a[1]);
-    const max = sorted[0][1];
-    const grid = document.getElementById('utm-grid');
-    grid.innerHTML = sorted.map(([src, cnt]) => `
-      <div class="utm-row">
-        <div class="utm-label">${src}</div>
-        <div class="utm-bar-wrap">
-          <div class="utm-bar" data-pct="${cnt / max * 100}"></div>
-        </div>
-        <div class="utm-count">${cnt}</div>
-      </div>
-    `).join('');
-
-    // animate bars
-    setTimeout(() => {
-      grid.querySelectorAll('.utm-bar').forEach(bar => {
-        bar.style.width = bar.dataset.pct + '%';
-      });
-    }, 400);
-  }
-
   async function main() {
     try {
       const orders = await fetchOrders();
       const cityMap = count(orders, 'city');
-      const utmMap  = count(orders, 'utm_source');
 
       // KPI
       document.getElementById('kpi-total').textContent = orders.length;
@@ -350,21 +280,15 @@
       document.getElementById('kpi-city').textContent = topCity[0];
       document.getElementById('kpi-city-count').textContent = `${topCity[1]} заказов`;
 
-      const topUtm = Object.entries(utmMap).sort((a,b) => b[1]-a[1])[0];
-      document.getElementById('kpi-utm').textContent = topUtm[0];
-      document.getElementById('kpi-utm-count').textContent = `${topUtm[1]} заказов`;
-
       // show content
       document.getElementById('status').style.display = 'none';
       document.getElementById('content').style.display = 'block';
 
       renderChart(cityMap);
-      renderUtm(utmMap);
 
       animateIn([
         ...document.querySelectorAll('.kpi'),
         document.getElementById('card-chart'),
-        document.getElementById('card-utm'),
       ]);
 
     } catch (e) {
